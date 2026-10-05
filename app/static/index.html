@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#11131a">
+  <title>WildCat Export Edition</title>
+  <!--SESSION_TOKEN-->
+  <link rel="stylesheet" href="/styles.css?v=20260927-civitairesources2">
+  <link rel="stylesheet" href="/export.css?v=1.02">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand-block">
+        <div class="brand-mark wildcat-mark" aria-hidden="true"><span>W</span><span>C</span></div>
+        <div>
+          <p class="eyebrow">REFERENCE-DRIVEN GPU AUTOMATION</p>
+          <h1>WildCat Export Edition</h1>
+          <span class="app-version">v1.02</span>
+        </div>
+      </div>
+      <div class="service-strip" aria-label="Service status">
+        <button class="status-chip" id="lmStatus" type="button"><i></i><span>Prompt backend</span><small>checking</small></button>
+        <button class="status-chip" id="comfyStatus" type="button"><i></i><span>ComfyUI</span><small>checking</small></button>
+        <button class="status-chip" id="guideStatus" type="button"><i></i><span>Guide library</span><small>checking</small></button>
+        <div class="vram-chip"><span>VRAM free</span><strong id="vramFree">—</strong></div>
+        <button class="secondary-button" id="openSetup" type="button">Setup</button>
+        <label class="theme-choice"><span>Theme</span><select id="exportTheme"><option value="dark">Dark</option><option value="light">Light</option></select></label>
+      </div>
+    </header>
+
+    <section class="export-setup panel" id="exportSetup" aria-label="Guided setup" hidden>
+      <div class="setup-heading"><div><p class="step-label">WELCOME TO YOUR OWN SETUP</p><h2>Connect once. Create in batches.</h2><p>No models or AI apps are bundled. Your files stay in this edition's own library.</p></div><button class="secondary-button" id="closeSetup" type="button">Configure later</button></div>
+      <ol class="setup-progress" aria-label="Setup steps"><li data-setup-step="0">1. Prompts</li><li data-setup-step="1">2. ComfyUI</li><li data-setup-step="2">3. Workflow</li><li data-setup-step="3">4. Ready</li></ol>
+      <div class="setup-page" data-setup-page="0">
+        <h3>How do you want to write prompts?</h3>
+        <label class="check-row"><input id="setupPasteOnly" type="checkbox"><span>I'll paste my own prompts. Skip the AI prompt backend for now.</span></label>
+        <div id="setupPromptFields">
+          <label><span>Prompt backend</span><select id="setupProvider"><option value="lmstudio">LM Studio — local server</option><option value="ollama">Ollama — local server</option><option value="llamacpp">llama.cpp — local GGUF</option><option value="claude">Claude Code — your CLI login</option><option value="codex">Codex — your CLI login</option></select></label>
+          <p class="setup-help" id="setupProviderHelp"></p>
+          <div id="setupServerFields"><label><span>Local server address</span><input id="setupUrl" type="url" placeholder="http://127.0.0.1:1234"><small>Use the server root address, without /v1. Only this computer is allowed.</small></label></div>
+          <div id="setupLlamaFields" hidden>
+            <label class="check-row"><input id="setupLlamaManaged" type="checkbox"><span>Let WildCat start and stop llama-server for safe VRAM handoffs (recommended).</span></label>
+            <div id="setupManagedPaths" hidden>
+              <label><span>llama-server executable</span><div class="browse-field"><input id="setupLlamaExe" type="text"><button class="secondary-button" data-browse="setupLlamaExe" data-kind="exe" type="button">Browse…</button></div></label>
+              <label><span>GGUF model file</span><div class="browse-field"><input id="setupLlamaModel" type="text"><button class="secondary-button" data-browse="setupLlamaModel" data-kind="gguf" type="button">Browse…</button></div></label>
+              <label><span>Vision projector / mmproj (optional, needed for image prompts)</span><div class="browse-field"><input id="setupLlamaMmproj" type="text"><button class="secondary-button" data-browse="setupLlamaMmproj" data-kind="gguf" type="button">Browse…</button></div></label>
+            </div>
+          </div>
+          <div id="setupCliFields" hidden>
+            <label><span>CLI executable (optional if already on PATH)</span><div class="browse-field"><input id="setupCliExe" type="text"><button class="secondary-button" data-browse="setupCliExe" data-kind="exe" type="button">Browse…</button></div></label>
+            <label><span>Model name (optional; blank uses your CLI default)</span><input id="setupCliModel" type="text" placeholder="Leave blank for default"></label>
+            <label class="check-row cloud-consent"><input id="setupCloudConsent" type="checkbox"><span>I understand that prompts, MD guide content, and reference photos will be sent to this cloud service and may consume paid usage.</span></label>
+          </div>
+          <div class="setup-actions"><button class="secondary-button" id="testPromptBackend" type="button">Check backend &amp; find models</button></div>
+          <label><span>Prompt model</span><select id="setupModel"><option value="">Check backend to find models</option></select></label>
+          <p id="setupPromptResult" class="form-message" role="status"></p>
+        </div>
+      </div>
+      <div class="setup-page" data-setup-page="1" hidden>
+        <h3>Connect to ComfyUI</h3><p>Start ComfyUI as you normally do, then check the address below. WildCat will submit your workflows through its API.</p>
+        <label><span>ComfyUI server address</span><input id="setupComfyUrl" type="url" placeholder="http://127.0.0.1:8188"></label>
+        <label><span>ComfyUI folder (optional)</span><div class="browse-field"><input id="setupComfyPath" type="text" placeholder="Choose your portable folder or ComfyUI install"><button class="secondary-button" data-browse="setupComfyPath" data-kind="folder" type="button">Browse…</button></div><small>Used to find local checkpoint/LoRA files for metadata hashing. No model files are copied.</small></label>
+        <button class="secondary-button" id="testComfyBackend" type="button">Check ComfyUI connection</button><p id="setupComfyResult" class="form-message" role="status"></p>
+        <p class="setup-help">Automatic AI-app launching is off by default. Local prompt models are unloaded before images run; ComfyUI is freed before local prompts run.</p>
+      </div>
+      <div class="setup-page" data-setup-page="2" hidden>
+        <h3>Add a generation workflow</h3><p>Use an API JSON export, or an original ComfyUI PNG with saved prompt metadata. You can add several files together.</p>
+        <label class="export-drop-zone" id="setupWorkflowDrop" for="setupWorkflowFiles"><input type="file" id="setupWorkflowFiles" accept=".json,.png" multiple><strong>Drop your workflow JSON files or ComfyUI PNGs here</strong><span>or click to browse</span></label>
+        <details><summary>How do I get an API workflow?</summary><p>In ComfyUI, enable developer/API export options in Settings, then export in API format. A normal canvas JSON is not executable API JSON. Original generated PNGs often contain the executable graph too; screenshots and re-saved images usually do not.</p><p>WildCat does not install custom nodes or download models. Import only workflows you trust.</p></details>
+        <p id="setupWorkflowResult" class="form-message" role="status"></p>
+        <div class="setup-actions"><button class="secondary-button" id="checkWorkflowNodes" type="button">Check installed node types</button><button class="secondary-button" id="setupMapping" type="button">Inspect prompt field mapping</button></div>
+      </div>
+      <div class="setup-page" data-setup-page="3" hidden>
+        <h3>You're ready to build a batch</h3><div id="setupSummary"></div><p>Paste prompts, or select one or more MD guides on Run a batch. Model-focused enhancers are included for Z-Image Turbo, Krea 2, Qwen-Image 2.1, and Ideogram 4.5. Image prompting is optional.</p>
+        <p>Start with a small batch to check your workflow. Pause safely finishes the current image; Cancel stops the job. Closing this page does not stop jobs.</p>
+        <button class="primary-button" id="finishSetup" type="button">Save setup &amp; open my workspace</button>
+      </div>
+      <p id="setupMessage" class="form-message" role="status"></p>
+      <div class="setup-footer"><button class="secondary-button" id="setupBack" type="button">Back</button><span id="setupStepLabel">Step 1 of 4</span><button class="primary-button" id="setupNext" type="button">Save &amp; continue</button></div>
+    </section>
+    <nav class="main-nav" aria-label="Main sections">
+      <button class="nav-tab is-active" data-tab="run" type="button">Run a batch</button>
+      <button class="nav-tab" data-tab="library" type="button">Image library</button>
+      <button class="nav-tab" data-tab="gallery" type="button">Gallery view</button>
+      <button class="nav-tab" data-tab="results" type="button">Edit results</button>
+      <button class="nav-tab" data-tab="leaderboard" type="button">Guide leaderboard</button>
+<button class="nav-tab" data-tab="wall" type="button">Image wall</button>
+<button class="nav-tab" data-tab="civitai" type="button">Civitai posting</button>
+<button class="nav-tab" data-tab="recycle" type="button">Recycle bin</button>
+      <button class="nav-tab" data-tab="postprocess" type="button">Post-processing</button>
+      <button class="nav-tab" data-tab="settings" type="button">Connections & workflow</button>
+    </nav>
+
+    <main>
+      <section class="tab-panel is-active" data-panel="run">
+        <div class="run-grid">
+          <article class="panel batch-builder">
+            <div class="panel-heading">
+              <div>
+                <p class="step-label">NEW HUNT</p>
+                <h2>Harness ideas and reference media</h2>
+                <p>One GPU lane. Each model family is unloaded before the next one begins.</p>
+              </div>
+              <span class="workflow-badge" id="workflowBadge">No workflow</span>
+            </div>
+
+            <form id="batchForm">
+              <fieldset class="source-picker">
+                <legend>1. Where should the prompts come from?</legend>
+                <label class="source-card">
+                  <input type="radio" name="source" value="guides" checked>
+                  <span><strong>MD guides + your prompt backend</strong><small>WildCat applies your Markdown guides through the backend chosen in Setup.</small></span>
+                </label>
+                <label class="source-card">
+                  <input type="radio" name="source" value="paste">
+                  <span><strong>Paste or import prompts</strong><small>Skip LM generation and send an existing list straight to the ComfyUI phase.</small></span>
+                </label>
+              </fieldset>
+
+              <div id="guideSource" class="source-fields">
+                <div class="field-grid two">
+                  <label>
+                    <span>Batch name <small>optional</small></span>
+                    <input id="batchTitle" type="text" placeholder="Desert architecture study">
+                  </label>
+                  <label>
+                    <span>Prompt model</span>
+                    <select id="promptModel"><option value="">Loading models…</option></select>
+                  </label>
+                </div>
+                <label>
+                  <span>2. Describe the image set <small>optional</small></span>
+                  <textarea id="batchBrief" rows="4" placeholder="Describe the images you want, or leave blank when using reference media below."></textarea>
+                </label>
+
+                <div class="guide-heading">
+                  <div><span>3. Select one or more MD guides</span><small id="guideCount">0 selected</small></div>
+                  <div class="guide-library-actions">
+                    <label class="text-button file-button" for="guideFiles">Add MD files<input id="guideFiles" type="file" accept=".md,text/markdown,text/plain" multiple></label>
+                    <button class="text-button" id="reloadGuides" type="button">Reload</button>
+                  </div>
+                </div>
+                <div class="guide-grid" id="guideGrid"><p class="empty-note">Loading your guide library…</p></div>
+                <p class="form-message" id="guideMessage" role="status"></p>
+                <p class="control-help">Pick a guide for your image model. Each selected guide creates its own prompts using the same chosen ComfyUI workflow; guides do not switch checkpoints.</p>
+                <details class="job-control-details guide-pack-help">
+                  <summary>What are the included guides for?</summary>
+                  <p>These are WildCat-authored enhancers based on linked official documentation, not official vendor prompts or benchmark-proven optimizations.</p>
+                  <ul>
+                    <li><strong>Z-Image Turbo:</strong> coherent scene descriptions, clear subject relationships, lighting, material detail, and literal text.</li>
+                    <li><strong>Krea 2:</strong> faithful natural-language expansion with purposeful medium, mood, and composition.</li>
+                    <li><strong>Qwen-Image 2.1:</strong> precise scene layout, requested typography, and task-specific editing or transparency wording.</li>
+                    <li><strong>Ideogram 4.5:</strong> design briefs, exact lettering, hierarchy, and targeted edit wording. This guide does not add an Ideogram API connection; use a compatible workflow or copy the prompts.</li>
+                    <li><strong>Cinematic / Editorial:</strong> the original generic WildCat starter guides; not tuned to a checkpoint.</li>
+                  </ul>
+                  <p>The default minimum is still 300 words. Lower it, or set it to 0 for no forced minimum, when you want concise prompts. Sources and authorship are recorded inside each model guide.</p>
+                </details>
+
+                <div class="field-grid four compact-fields">
+                  <label><span>Base prompts per guide <small id="effectivePromptCount">4 total per guide</small></span><input id="promptsPerGuide" type="number" min="1" step="1" value="4"></label>
+                  <label><span>Comfy runs per prompt</span><input id="imagesPerPrompt" type="number" min="1" step="1" value="1"></label>
+                  <label><span>Minimum words</span><input id="wordLimit" type="number" min="0" step="1" value="300"></label>
+                  <label><span>Temperature</span><input id="temperature" type="number" min="0" max="2" step="0.1" value="0.7"></label>
+                </div>
+                <label class="check-row"><input id="negativeEnabled" type="checkbox"><span>Ask WildCat for a separate negative prompt for every prompt</span></label>
+
+                <details class="reference-composer" id="referenceComposer">
+                  <summary class="reference-summary">
+                    <span class="reference-summary-copy"><strong>Optional image &amp; video references</strong><small>Open only when you want image-guided prompts.</small></span>
+                    <span class="reference-summary-count" id="referenceSummaryCount">No references</span>
+                  </summary>
+                  <div class="reference-composer-body">
+                    <div class="reference-heading">
+                    <div><h3>Add reference media</h3><p>Drop as many references as you need. Each photo or video still adds one prompt per guide, is queued separately, and is deleted after the run completes.</p></div>
+                      <button class="text-button" id="clearReferences" type="button">Clear tray</button>
+                    </div>
+                    <div class="reference-mode-picker" role="radiogroup" aria-label="How references guide the prompt">
+                      <label class="reference-mode-card">
+                        <input type="radio" name="referenceMode" value="match">
+                        <span><strong>Match closely</strong><small>Reconstruct subject, composition, camera, light, and appearance as faithfully as text prompting allows.</small></span>
+                      </label>
+                      <label class="reference-mode-card">
+                        <input type="radio" name="referenceMode" value="inspiration" checked>
+                        <span><strong>Use for inspiration</strong><small>Treat the group as a mood board and create a new image from its strongest visual ideas.</small></span>
+                      </label>
+                    </div>
+                    <div class="reference-controls">
+                      <label class="check-row cleanup-toggle"><input id="removeReferenceUi" type="checkbox" checked><span>Remove UI automatically <small>photos keep their full framing; controls, captions, logos, and overlays are excluded through the prompt sent to the model</small></span></label>
+                      <label class="reference-drop-zone" id="referenceDropZone" for="referenceFiles">
+                        <input id="referenceFiles" type="file" accept="image/*,video/*" multiple>
+                        <strong>Drop photos or videos here</strong>
+                        <span>or click to choose many files</span>
+                      </label>
+                    </div>
+                    <p class="form-message" id="referenceMessage" role="status"></p>
+                    <div class="reference-tray" id="referenceTray"><p class="empty-note">No reference media yet. Your text brief can still run by itself.</p></div>
+                  </div>
+                </details>
+              </div>
+
+              <div id="pasteSource" class="source-fields is-hidden">
+                <div class="field-grid two">
+                  <label><span>Batch name</span><input id="pasteTitle" type="text" placeholder="Imported prompt set"></label>
+                  <label><span>Comfy runs per prompt</span><input id="pasteImagesPerPrompt" type="number" min="1" step="1" value="1"></label>
+                </div>
+                <label>
+                  <span>2. Paste prompts</span>
+                  <textarea id="pastedPrompts" rows="12" placeholder="Paste one prompt per line, or a numbered list. Negative Prompt: lines are recognized automatically."></textarea>
+                </label>
+              </div>
+
+              <label class="workflow-choice">
+                <span>ComfyUI API workflow</span>
+                <select id="batchWorkflow"><option value="">Upload a workflow first…</option></select>
+                <small>The selected API file is saved with every generated image.</small>
+              </label>
+
+              <div class="handoff-line" aria-label="Automation sequence">
+                <span>LM prompts</span><b>unload</b><span>Comfy queue</span><b>free</b><span>Library</span>
+              </div>
+              <div class="start-row">
+                <button class="primary-button" id="startBatch" type="submit">Start the full relay</button>
+                <label class="queue-only-toggle" title="Save for later; if a job is running, this starts after earlier jobs finish"><input type="checkbox" id="queueOnly"> Queue for later</label>
+              </div>
+              <p class="form-message" id="batchMessage" role="status"></p>
+            </form>
+          </article>
+
+          <aside class="panel live-panel" id="livePanel">
+            <div class="panel-heading small">
+              <div><p class="step-label">LIVE JOB</p><h2 id="liveTitle">No active batch</h2></div>
+              <span class="state-pill" id="liveState">idle</span>
+            </div>
+            <div class="progress-wrap">
+              <div class="progress-track"><span id="progressBar"></span></div>
+              <div class="progress-meta"><span id="livePhase">Your next batch will appear here.</span><strong id="progressText">0 / 0</strong></div>
+            </div>
+            <div class="gpu-lane">
+              <div class="lane-stop"><i></i><span>Prompt backend</span></div>
+              <div class="lane-arrow">→</div>
+              <div class="lane-stop"><i></i><span>VRAM handoff</span></div>
+              <div class="lane-arrow">→</div>
+              <div class="lane-stop"><i></i><span>ComfyUI</span></div>
+            </div>
+            <p class="current-prompt-state" id="currentPromptState">No ComfyUI prompt is running.</p>
+            <div class="job-actions primary-job-actions">
+              <button class="secondary-button" id="pauseBatch" type="button" disabled>Pause</button>
+              <button class="secondary-button" id="resumeBatch" type="button" disabled hidden>Resume</button>
+              <button class="danger-button" id="cancelBatch" type="button" disabled>Cancel job</button>
+            </div>
+            <p class="control-help" id="jobControlHelp">Saved images are kept when you cancel. Other queued jobs continue.</p>
+            <details class="job-control-details" id="promptRecoveryControls">
+              <summary>Fix a prompt</summary>
+              <p class="control-help">Retry uses a new seed. Rewrite asks your prompt backend for a better prompt. Skip moves to the next prompt.</p>
+              <div class="job-actions">
+                <button class="secondary-button" id="retryPrompt" type="button" disabled>Retry image</button>
+                <button class="secondary-button" id="regeneratePrompt" type="button" disabled>Rewrite prompt</button>
+                <button class="secondary-button" id="skipPrompt" type="button" disabled>Skip prompt</button>
+              </div>
+            </details>
+            <div class="queue-section">
+              <p class="step-label">QUEUE</p>
+              <div class="queue-info"><span id="queueCount">0 queued</span></div>
+              <button class="danger-button" id="stopEntireQueue" type="button" disabled>Cancel all jobs</button>
+              <p class="control-help">Stops the current job and cancels every waiting job. Saved images are kept.</p>
+              <p class="form-message" id="queueMessage" role="status"></p>
+            </div>
+            <details class="job-control-details" id="comfyShutdownControls">
+              <summary>ComfyUI controls</summary>
+              <p class="control-help">These cancel the current job and hold the queue. Use them when you need ComfyUI's GPU memory for another app.</p>
+              <div class="comfy-control-choice">
+                <button class="secondary-button" id="stopComfyNow" type="button">Release GPU memory</button>
+                <span class="control-help">Unloads ComfyUI models; keeps ComfyUI open.</span>
+              </div>
+              <div class="comfy-control-choice">
+                <button class="secondary-button" id="exitComfyApp" type="button">Close ComfyUI</button>
+                <span class="control-help">Exits the ComfyUI application completely.</span>
+              </div>
+            </details>
+            <div class="event-log" id="eventLog"><p>Nothing running yet.</p></div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-panel="library">
+        <div class="library-grid">
+          <aside class="panel library-list-panel">
+            <div class="panel-heading small">
+              <div><p class="step-label">MEMORY</p><h2>Saved batches</h2></div>
+            </div>
+            <label class="search-field"><span class="sr-only">Search batches</span><input id="librarySearch" type="search" placeholder="Search prompts, guides, batches…"></label>
+            <div class="batch-list" id="batchList"><p class="empty-note">No batches yet.</p></div>
+          </aside>
+          <section class="panel library-detail" id="libraryDetail">
+            <div class="library-empty"><strong>Your WildCat image memory lives here.</strong><p>Open a batch to see every image beside the prompt, guide, seed, and Q&A history.</p></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-panel="gallery">
+        <div class="gallery-page">
+          <header class="panel gallery-toolbar">
+            <div>
+              <p class="step-label">VISUAL WALL</p>
+              <h2>Gallery view</h2>
+              <p>Browse many large outputs together. Open any image for its full prompt, workflow, seed, and actions.</p>
+            </div>
+            <label>
+              <span>Batch</span>
+              <select id="galleryBatchSelect"><option value="">Choose a batch with images…</option></select>
+            </label>
+          </header>
+          <div id="galleryView" class="gallery-view">
+            <div class="gallery-empty"><strong>Your large-image gallery lives here.</strong><p>Choose a batch to fill the visual wall.</p></div>
+          </div>
+          <dialog class="image-detail-dialog" id="imageDetailDialog" aria-label="Image details"></dialog>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-panel="results">
+        <div class="tool-results-page">
+          <header class="panel tool-results-toolbar">
+            <div>
+              <p class="step-label">COMFYUI IMAGE TOOLS</p>
+              <h2>Edit &amp; upscale results</h2>
+              <p>Every output made with an editing or upscaling API appears here, newest first, with its instruction and source workflow.</p>
+            </div>
+            <button class="secondary-button" id="refreshToolResults" type="button">Refresh results</button>
+          </header>
+          <div id="toolResultsView" class="tool-results-view">
+            <div class="gallery-empty"><strong>No image-tool results loaded yet.</strong><p>Send an image for editing or upscaling from Gallery view.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-panel="leaderboard">
+        <div class="leaderboard-page">
+          <header class="panel leaderboard-header">
+            <div>
+              <p class="step-label">ALL BATCHES</p>
+              <h2>Markdown-guide leaderboard</h2>
+              <p>One overall ranking built from every starred image in the library. Reruns and older batches count toward the same guide.</p>
+            </div>
+            <div class="leaderboard-controls">
+              <label><span>Find a guide</span><input id="leaderboardSearch" type="search" placeholder="Search markdown files…"></label>
+              <label><span>Order</span>
+                <select id="leaderboardSort">
+                  <option value="score">Overall rank</option>
+                  <option value="coverage">Highest percentage rated</option>
+                  <option value="five-stars">Most 5-star ratings</option>
+                  <option value="rated">Most rated</option>
+                  <option value="images">Most outputs</option>
+                  <option value="posted">Most posted to Civitai</option>
+                  <option value="batches">Most batches</option>
+                  <option value="name">Guide name</option>
+                </select>
+              </label>
+            </div>
+          </header>
+          <div class="leaderboard-summary" id="leaderboardSummary">
+            <div class="gallery-empty"><strong>Calculating guide rankings…</strong></div>
+          </div>
+          <section class="panel leaderboard-table-panel">
+            <div class="leaderboard-table-head">
+              <div><p class="step-label">OVERALL RESULTS</p><h3>All markdown files</h3></div>
+              <p>Score uses only images you rated. Unrated outputs stay visible but do not lower a guide’s average.</p>
+            </div>
+            <div id="leaderboardTable" class="leaderboard-table">
+              <div class="gallery-empty"><strong>Loading ratings…</strong></div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="tab-panel image-wall-panel" data-panel="wall">
+        <div class="image-wall-page">
+          <header class="image-wall-toolbar">
+            <div>
+              <p class="step-label">IMAGES ONLY</p>
+              <h2>Image wall</h2>
+            </div>
+            <label>
+              <span>Batch</span>
+              <select id="wallBatchSelect"><option value="">Choose a batch with images…</option></select>
+            </label>
+          </header>
+          <div id="imageWallView" class="image-wall-view">
+            <div class="gallery-empty"><strong>Your image-only wall lives here.</strong><p>Choose a batch, then click any image to enlarge it.</p></div>
+          </div>
+          <dialog class="image-lightbox-dialog" id="imageLightboxDialog" aria-label="Large image viewer"></dialog>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-panel="civitai">
+        <div class="civitai-queue-layout">
+          <section class="panel civitai-queue-panel">
+            <header class="panel-heading small">
+              <div><p class="step-label">POST QUEUE</p><h2>Civitai posting queue</h2><p>Click "Post to Civitai" on any gallery image to stage it here. Publishing happens only when you press the final button below.</p></div>
+              <div class="civitai-queue-count"><span id="civitaiQueueCount">0 images queued</span></div>
+            </header>
+            <div id="civitaiQueueView" class="civitai-queue-grid">
+              <div class="gallery-empty"><strong>The post queue is empty.</strong><p>Use the "Post to Civitai" button on any image in Gallery view to stage it here.</p></div>
+            </div>
+            <div class="civitai-publish-row">
+              <label><span>Images per post <small>Civitai allows 20 per post; more queues are split automatically</small></span><input id="civitaiChunkSize" type="number" min="1" max="50" value="20"></label>
+              <button class="secondary-button" id="civitaiQueueClear" type="button">Clear queue</button>
+              <button class="primary-button" id="civitaiQueuePublish" type="button" disabled>Publish queue to Civitai</button>
+            </div>
+            <p class="form-message" id="civitaiQueueMessage" role="status"></p>
+            <div id="civitaiQueueResults"></div>
+          </section>
+          <aside class="panel civitai-side-panel">
+            <div class="panel-heading small"><div><p class="step-label">SYNC</p><h3>Already posted?</h3><p>Match everything you have already posted on Civitai against the archive.</p></div></div>
+            <div class="civitai-sync-row">
+              <button class="secondary-button" id="civitaiSyncQueue" type="button">Sync: detect posted images</button>
+              <span id="civitaiStatusQueue" class="civitai-status">—</span>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-panel="recycle">
+        <div class="recycle-page">
+          <section class="finder-panel">
+            <header class="panel recycle-toolbar">
+              <div>
+                <p class="step-label">IMAGE FINDER</p>
+                <h2>Find an image in the archive</h2>
+                <p>Drop any copy of an image — re-saved, resized, screenshot, or edited — and WildCat matches it visually against the archive.</p>
+              </div>
+            </header>
+            <div class="recycle-drop-zone finder-drop-zone" id="finderDropZone">
+              <input id="finderFiles" type="file" accept="image/*">
+              <strong>Drop an image here or click to browse</strong>
+              <span>WildCat shows the closest archived matches with a similarity score.</span>
+            </div>
+            <p class="form-message" id="finderMessage" role="status"></p>
+            <div id="finderResults"></div>
+          </section>
+          <header class="panel recycle-toolbar">
+            <div>
+              <p class="step-label">ONE PIXEL PER DELETION</p>
+              <h2>Recycle-bin collage</h2>
+              <p>Each image deleted from Gallery view leaves behind exactly one representative color pixel. Deleted archive images cannot be restored from this collage.</p>
+            </div>
+            <button class="secondary-button" id="refreshRecycleBin" type="button">Refresh collage</button>
+          </header>
+          <div class="recycle-drop-zone" id="recycleDropZone">
+            <input id="recycleDropFiles" type="file" accept="image/*" multiple>
+            <strong>Drop images here or click to browse</strong>
+            <span>WildCat samples a pixel, adds it to the collage, and deletes the original file.</span>
+          </div>
+          <p class="form-message" id="recycleDropMessage" role="status"></p>
+          <section id="recycleBinView" class="panel recycle-bin-view">
+            <div class="gallery-empty"><strong>The recycle collage is empty.</strong><p>Delete an individual image from Gallery view to add its pixel.</p></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-panel="postprocess">
+        <div class="postprocess-page">
+          <header class="panel postprocess-toolbar">
+            <div>
+              <p class="step-label">CIVITAI METADATA</p>
+              <h2>Deterministic post-processing</h2>
+              <p>Translate metadata already embedded by ComfyUI into Civitai’s recognized parameters format. Image pixels and the original ComfyUI prompt/workflow data stay intact.</p>
+            </div>
+            <label>
+              <span>Batch</span>
+              <select id="postprocessBatchSelect"><option value="">Choose a batch with images…</option></select>
+            </label>
+          </header>
+          <div class="postprocess-summary" id="postprocessSummary">
+            <div class="gallery-empty"><strong>Choose a batch to inspect metadata.</strong><p>No values are guessed or entered manually.</p></div>
+          </div>
+          <div class="postprocess-grid">
+            <section class="panel metadata-image-list-panel">
+              <div class="metadata-list-head">
+                <div><p class="step-label">IMAGES</p><h3>Conversion status</h3></div>
+                <button class="primary-button metadata-batch-button" id="convertMetadataBatch" type="button" disabled>Convert ready images</button>
+              </div>
+              <div class="metadata-image-list" id="metadataImageList"><p class="empty-note">No batch selected.</p></div>
+            </section>
+            <section class="panel metadata-preview-panel" id="metadataPreview">
+              <div class="library-empty"><strong>Select an image.</strong><p>Its extracted values and exact Civitai parameters will appear here before conversion.</p></div>
+            </section>
+          </div>
+          <p class="form-message" id="postprocessMessage" role="status"></p>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-panel="settings">
+        <div class="settings-grid">
+          <article class="panel">
+            <div class="panel-heading small"><div><p class="step-label">ADVANCED CONNECTIONS</p><h2>Connection details</h2><p>Use Setup in the header to choose a backend. The LM Studio fields below only apply when LM Studio is selected.</p></div></div>
+            <form id="settingsForm" class="settings-form">
+              <label><span>LM Studio API</span><input id="lmUrl" type="url"></label>
+              <label><span>LM Studio executable</span><input id="lmStudioExe" type="text"></label>
+              <label><span>LM Studio API token <small>leave blank to keep the saved token</small></span><input id="lmToken" type="password" autocomplete="new-password"></label>
+              <label><span>ComfyUI API</span><input id="comfyUrl" type="url"></label>
+              <label><span>ComfyUI portable folder</span><input id="comfyPath" type="text"></label>
+              <div class="field-grid two">
+                <label><span>LM context length</span><input id="contextLength" type="number" min="1" step="1"></label>
+                <label><span>Comfy timeout (minutes)</span><input id="comfyTimeout" type="number" min="1" step="1"></label>
+              </div>
+              <label class="check-row"><input id="autoStartApps" type="checkbox"><span>Start an existing app automatically when its API is offline</span></label>
+              <button class="primary-button" type="submit">Save connections</button>
+              <p class="form-message" id="settingsMessage" role="status"></p>
+            </form>
+          </article>
+
+          <article class="panel civitai-panel">
+            <div class="panel-heading small"><div><p class="step-label">CIVITAI</p><h2>Civitai posting &amp; tracking</h2><p>Save your API key to auto-detect which images you already posted, and post new drafts straight from the gallery.</p></div></div>
+            <form id="civitaiForm" class="settings-form">
+              <label><span>Civitai API key <small>profile settings → API Keys; leave blank to keep the saved key</small></span><input id="civitaiToken" type="password" autocomplete="new-password" placeholder="civitai_has_api_token: loading…"></label>
+              <label><span>Username <small>filled automatically from the key</small></span><input id="civitaiUsername" type="text"></label>
+              <button class="primary-button" type="submit">Save &amp; verify key</button>
+              <p class="form-message" id="civitaiMessage" role="status"></p>
+            </form>
+            <div class="civitai-sync-row">
+              <button class="secondary-button" id="civitaiSync" type="button">Sync: detect posted images</button>
+              <span id="civitaiStatus" class="civitai-status">—</span>
+            </div>
+          </article>
+
+          <article class="panel workflow-panel">
+            <div class="panel-heading small"><div><p class="step-label">COMFYUI MAP</p><h2>Choose the reusable workflow</h2><p>Export once in ComfyUI’s API format. WildCat Harness changes only the selected prompt fields and seeds.</p></div></div>
+            <div class="workflow-library-controls">
+              <label class="workflow-choice">
+                <span>Workflow to inspect and map</span>
+                <select id="workflowLibrary"><option value="">No saved workflows</option></select>
+              </label>
+              <button class="danger-button" id="deleteWorkflow" type="button" disabled>Delete API</button>
+            </div>
+            <label class="upload-zone" for="workflowFile">
+              <input id="workflowFile" type="file" accept=".json,.png,application/json,image/png" multiple>
+              <strong>Load Workflow (API) JSON files or original ComfyUI PNGs</strong>
+              <span>In ComfyUI: Settings → enable Dev Mode → Export Workflow (API)</span>
+            </label>
+            <div class="workflow-summary" id="workflowSummary"><p>No API workflow uploaded yet.</p></div>
+            <form id="mappingForm" class="mapping-form is-hidden">
+              <div>
+                <h3>Positive prompt fields</h3>
+                <div id="positiveFields" class="mapping-list"></div>
+              </div>
+              <div>
+                <h3>Negative prompt fields <small>optional</small></h3>
+                <div id="negativeFields" class="mapping-list"></div>
+              </div>
+              <button class="secondary-button" type="submit">Save field mapping</button>
+              <p class="form-message" id="mappingMessage" role="status"></p>
+            </form>
+          </article>
+
+          <article class="panel image-tool-workflow-panel">
+            <div class="panel-heading small"><div><p class="step-label">IMAGE ACTION APIS</p><h2>Editing & upscaling workflows</h2><p>These are kept separate from batch-generation APIs. Each workflow must contain a Load Image node for the gallery image.</p></div></div>
+            <div class="image-tool-upload-controls">
+              <label>
+                <span>Workflow purpose</span>
+                <select id="imageToolKind">
+                  <option value="edit">Editing</option>
+                  <option value="upscale">Upscaling</option>
+                </select>
+              </label>
+              <label class="upload-zone compact-upload" for="imageToolWorkflowFile">
+                <input id="imageToolWorkflowFile" type="file" accept=".json,.png,application/json,image/png" multiple>
+                <strong>Load edit/upscale API JSON or ComfyUI PNGs</strong>
+                <span>The selected purpose applies to all files chosen at once.</span>
+              </label>
+            </div>
+            <div class="image-tool-workflow-list" id="imageToolWorkflowList"><p class="empty-note">No editing or upscaling APIs uploaded yet.</p></div>
+            <p class="form-message" id="imageToolWorkflowMessage" role="status"></p>
+          </article>
+
+          <article class="panel safety-panel">
+            <div class="panel-heading small"><div><p class="step-label">MANUAL SAFETY</p><h2>GPU memory controls</h2><p>Use these if another app was used outside WildCat Harness.</p></div></div>
+            <div class="safety-actions">
+              <button class="secondary-button" id="unloadLm" type="button">Unload prompt backend models</button>
+              <button class="secondary-button" id="freeComfy" type="button">Free ComfyUI models + memory</button>
+            </div>
+            <p class="form-message" id="safetyMessage" role="status"></p>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="/export.js?v=1.02" defer></script>
+  <script src="/app.js?v=1.02" defer></script>
+</body>
+</html>
